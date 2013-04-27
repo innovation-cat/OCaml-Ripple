@@ -1,12 +1,29 @@
-(*#load "GL.cma"
+(*****************************************************************************)
+(*****************************************************************************)
+(* demo.ml                                                                   *)
+(* ==========================================================================*)
+(* Ripple simulation implementation with OCaml and glMLite                   *)
+(*                                                                           *)
+(* AUTHOR: Anbu Huang (wong4ever.1987@gmail.com)                             *)
+(*                                                                           *)
+(* CREATED: 2013-04-15                                                       *) 
+(*****************************************************************************)
+
+#load "GL.cma"
 #load "Glu.cma"
 #load "Glut.cma"
-#load "png_loader.cma"*)
+#load "png_loader.cma"
+#load "model.cma"
+#load "VBO.cma"
+#load "vertArray.cma"
+
 open GL
 open Glu
 open Glut
 open Png_loader
 open Model
+open VBO
+open VertArray
 
 let angle_x = ref 0.0 and angle_y = ref 0.0 and angle_z = ref 0.0  (* x , y , z rotation angle *) 
 let rotate = ref true 
@@ -54,38 +71,41 @@ let loadTexture () =   (* Load GL Texture *)
    texture
 ;;
 
-let keyboard ~window ~key ~x ~y = match key with
-    | '\113' | '\081' -> glutDestroyWindow window;
-                exit 1;
-    | 'L' | 'l' -> light := (!light + 1) mod 2;
-                   if !light land 1 = 1 then glEnable GL_LIGHTING
-                   else glDisable GL_LIGHTING;
-    | 'M' | 'm' -> filter := (!filter + 1) mod 6;
-    | 'B' | 'b' -> blend := not (!blend); 
-                   if !blend then begin
-                      glEnable GL_BLEND;  glDisable GL_DEPTH_TEST;
-                   end else begin
-                      glEnable GL_DEPTH_TEST; glDisable GL_BLEND;
-                   end 
-    | 'a' | 'A' -> xpos := !xpos -. 0.1;
-    | 'D' | 'd' -> xpos := !xpos +. 0.1;
-    | 'w' | 'W' -> ypos := !ypos +. 0.1;
-    | 'S' | 's' -> ypos := !ypos -. 0.1;
-    | _ -> ()
-;;
-    
 let rec _glEnable = function
     | [] -> ()
     | a::b -> glEnable a; _glEnable b;
 ;;
 
+let createVBO ~sector = 
+   let triangles_list = Array.to_list sector.triangles in ();
+   
+   let vertex_id = glGenBuffer () in ();
+   glBindBuffer GL_ARRAY_BUFFER vertex_id;
+   let rec aux1 ac = function [] -> ac 
+                | (vertex1,vertex2,vertex3)::b -> 
+                  aux1 (vertex3.z::vertex3.y::vertex3.x::vertex2.z::vertex2.y::vertex2.x::vertex1.z::vertex1.y::vertex1.x::ac) b
+   in let vertexes_array = Array.of_list (List.rev (aux1 [] triangles_list)) in
+   let vertexes_coord = Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout vertexes_array 
+   in glBufferData GL_ARRAY_BUFFER (ba_sizeof vertexes_coord) vertexes_coord GL_STATIC_DRAW;
+
+   let texture_id = glGenBuffer () in ();
+   glBindBuffer GL_ARRAY_BUFFER texture_id;
+   let rec aux2 ac = function [] -> ac 
+                | (vertex1,vertex2,vertex3)::b -> 
+                  aux2 (vertex3.v::vertex3.u::vertex2.v::vertex2.u::vertex1.v::vertex1.u::ac) b
+   in let textures_coord_array = Array.of_list (List.rev (aux2 [] triangles_list)) in
+   let textures_coord = Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout textures_coord_array 
+   in glBufferData GL_ARRAY_BUFFER (ba_sizeof textures_coord) textures_coord GL_STATIC_DRAW;
+   (vertex_id,texture_id)
+;;
+
 let initGL () = 
 (* initialize OpenGL development enviroment *)
-   let texture = loadTexture () in
-   let ic = open_in "picture/data.txt"  in
-   let sector = setup ic in  
+    let texture = loadTexture () in
+    let ic = open_in "picture/data.txt"  in
+    let sector = setup ic in
+    let (vertex_id,texture_id) = createVBO sector in
     glShadeModel GL_SMOOTH;
-    
     (* set background color (r,g,b,a) *)
     glClearColor ~r:0.0 ~g:0.0 ~b:0.0 ~a:0.0;
     
@@ -105,9 +125,11 @@ let initGL () =
     glColor4 1.0 1.0 1.0 0.5;
     
     glHint ~target:GL_PERSPECTIVE_CORRECTION_HINT ~mode:GL_NICEST;
-    (texture,sector)
+    (texture,sector,vertex_id,texture_id)
 ;;
 
+(**************************************************************************************)
+(* Reshape callback function, this function will be trigger when a window is reshape  *)
 let resize ~width ~height =
 (* Reshpe *)
     let height = if height = 0 then 1 else height in
@@ -122,9 +144,36 @@ let resize ~width ~height =
     
     glMatrixMode GL_MODELVIEW;
 ;;
+(**************************************************************************************)
+
+
+(**************************************************************************************)
+(* Keyboard callback function for current window,                                     *)
+(* When a user types into the window,                                                 *)
+(* each key press generating an ASCII character will generate a keyboard callback.    *)
+let keyboard ~window ~key ~x ~y = match key with
+    | '\113' | '\081' -> glutDestroyWindow window;
+                exit 1;
+    | 'L' | 'l' -> light := (!light + 1) mod 2;
+                   if !light land 1 = 1 then glEnable GL_LIGHTING
+                   else glDisable GL_LIGHTING;
+    | 'M' | 'm' -> filter := (!filter + 1) mod 6;
+    | 'B' | 'b' -> blend := not (!blend); 
+                   if !blend then begin
+                      glEnable GL_BLEND;  glDisable GL_DEPTH_TEST;
+                   end else begin
+                      glEnable GL_DEPTH_TEST; glDisable GL_BLEND;
+                   end 
+    | 'a' | 'A' -> xpos := !xpos -. 0.1;
+    | 'D' | 'd' -> xpos := !xpos +. 0.1;
+    | 'w' | 'W' -> ypos := !ypos +. 0.1;
+    | 'S' | 's' -> ypos := !ypos -. 0.1;
+    | _ -> ()
+;;
+(**************************************************************************************) 
 
 let piover180 = 0.017453292519943295
-
+   
 let special ~key ~x ~y =
     match key with
     | GLUT_KEY_LEFT -> yrot := !yrot -. 1.0;
@@ -148,11 +197,24 @@ let special ~key ~x ~y =
     | _ -> ();
 ;; 
 
-let drawscene ~texture ~sector = 
+let drawscene (texture , sector , vertex_id , texture_id)= 
     glRotate (360.0 -. !up_down) 1.0 0.0 0.0;
     glRotate !yrot 0.0 1.0 0.0;
     glTranslate !xpos !ypos !zpos;         (* Move Left 1.5 Units And Into The Screen 6.0 *)
+    
     glBindTexture BindTex.GL_TEXTURE_2D texture.(!filter); 
+    
+    glBindBuffer GL_ARRAY_BUFFER vertex_id;
+    glVertexPointer0 3 Coord.GL_FLOAT 0;
+
+    glBindBuffer GL_ARRAY_BUFFER texture_id;
+    glTexCoordPointer0 2 Coord.GL_FLOAT 0;
+   
+    glEnableClientState GL_VERTEX_ARRAY;
+    glEnableClientState GL_TEXTURE_COORD_ARRAY; 
+    
+    glDrawArrays GL_TRIANGLES 0 (28*3); 
+    (*
     Array.iter (fun (vertex1 , vertex2 , vertex3) ->  
       glBegin GL_TRIANGLES;
       glNormal3 0.0 0.0 1.0;
@@ -166,6 +228,10 @@ let drawscene ~texture ~sector =
       glVertex3 vertex3.x vertex3.y vertex3.z;
       glEnd ();
     ) sector.triangles;
+    *)
+    glDisableClientState GL_VERTEX_ARRAY;
+    glDisableClientState GL_TEXTURE_COORD_ARRAY; 
+    glUnbindBuffer GL_ARRAY_BUFFER; 
     
     glDisable GL_TEXTURE_2D;
     glEnable GL_BLEND;
@@ -182,12 +248,12 @@ let drawscene ~texture ~sector =
     glColor4 1.0 1.0 1.0 0.0; 
 ;;   
 
-let display ~texture ~sector = fun () ->
+let display (texture , sector, vertex_id , texture_id) = fun () ->
 (* Display function *)
     glClear [GL_COLOR_BUFFER_BIT ; GL_DEPTH_BUFFER_BIT];
     glLoadIdentity ();  
     
-    drawscene ~texture ~sector;
+    drawscene (texture , sector , vertex_id , texture_id);
 
     glutSwapBuffers ();
 ;;
@@ -203,9 +269,9 @@ let () =
   
     let window = glutCreateWindow ~title:"ocaml-opengl demo" in
    
-    let (texture , sector) = initGL () in
+    let (texture , sector , vertex_id , texture_id) = initGL () in
     
-    glutDisplayFunc (display ~texture ~sector);
+    glutDisplayFunc (display (texture , sector , vertex_id , texture_id));
    
     glutIdleFunc ~idle:glutPostRedisplay;
   
