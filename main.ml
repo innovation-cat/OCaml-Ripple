@@ -16,6 +16,7 @@
 #load "model.cma"
 #load "VBO.cma"
 #load "vertArray.cma"
+#load "bigarray.cma"
 
 open GL
 open Glu
@@ -24,6 +25,7 @@ open Png_loader
 open Model
 open VBO
 open VertArray
+open Bigarray
 
 let angle_x = ref 0.0 and angle_y = ref 0.0 and angle_z = ref 0.0  (* x , y , z rotation angle *) 
 let rotate = ref true 
