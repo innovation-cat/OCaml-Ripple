@@ -16,7 +16,9 @@
 #load "png_loader.cma"
 #load "model.cma"
 #load "VBO.cma"
+#load "FBO.cma"
 #load "vertArray.cma"
+#load "field.cma"
 #load "ripple.cma"
 
 open GL
@@ -27,6 +29,7 @@ open Model
 open VBO
 open VertArray
 open Bigarray
+open Ripple
 
 let angle_x = ref 0.0 and angle_y = ref 0.0 and angle_z = ref 0.0  (* x , y , z rotation angle *) 
 let rotate = ref true 
@@ -48,6 +51,10 @@ let yrot = ref 0.0 (* y rotation abgle *)
 let up_down = ref 0.0 (* up and down angle *)
 let xpos = ref 0.0 and ypos = ref 0.0 and zpos = ref (-6.0) (* x,y,z position *)
 let y_ripple = ref 0.0  (* simulate *)
+
+
+let raindrop = ref []   (* raindrop array *)
+let lasttime = ref 0.0
 
 let loadTexture () =   (* Load GL Texture *)
    let load_image filename = let 
@@ -107,8 +114,9 @@ let initGL () =
     let texture = loadTexture () in
     let ic = open_in "picture/data.txt"  in
     let sector = setup ic in
+    let (ripple_tex_2d , ripple_tex_1d , ripple_program, fboId) = Ripple.init () in
     let (vertex_id,texture_id) = createVBO sector in
-    let (ripple_vertices_id, ripple_texture_id, ripple_indices_id) = Ripple.init () in
+    let (ripple_vertices_id, ripple_texture_id, ripple_indices_id) = Field.init () in
     glShadeModel GL_SMOOTH;
     (* set background color (r,g,b,a) *)
     glClearColor ~r:0.0 ~g:0.0 ~b:0.0 ~a:0.0;
@@ -129,7 +137,7 @@ let initGL () =
     glColor4 1.0 1.0 1.0 0.5;
     
     glHint ~target:GL_PERSPECTIVE_CORRECTION_HINT ~mode:GL_NICEST;
-    (texture,sector,vertex_id,texture_id, ripple_vertices_id, ripple_texture_id, ripple_indices_id)
+    (texture,sector,vertex_id,texture_id, ripple_vertices_id, ripple_texture_id, ripple_indices_id , ripple_tex_2d , ripple_program , fboId)
 ;;
 
 (**************************************************************************************)
@@ -201,7 +209,9 @@ let special ~key ~x ~y =
     | _ -> ();
 ;; 
 
-let drawscene (texture , sector , vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id)= 
+let drawscene (texture , sector , vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id , ripple_tex_2d , ripple_program , fboId)= 
+    glClearColor 1.0 0.0 0.0 0.0;
+    glClear [GL_COLOR_BUFFER_BIT;GL_DEPTH_BUFFER_BIT];
     glRotate (360.0 -. !up_down) 1.0 0.0 0.0;
     glRotate !yrot 0.0 1.0 0.0;
     glTranslate !xpos !ypos !zpos;         (* Move Left 1.5 Units And Into The Screen 6.0 *)
@@ -217,7 +227,7 @@ let drawscene (texture , sector , vertex_id , texture_id , ripple_vertex_id , ri
     glEnableClientState GL_VERTEX_ARRAY;
     glEnableClientState GL_TEXTURE_COORD_ARRAY; 
     
-    glDrawArrays GL_TRIANGLES 0 (28*3); 
+    glDrawArrays GL_TRIANGLES 0 (28*3);
     (*
     Array.iter (fun (vertex1 , vertex2 , vertex3) ->  
       glBegin GL_TRIANGLES;
@@ -234,28 +244,35 @@ let drawscene (texture , sector , vertex_id , texture_id , ripple_vertex_id , ri
     ) sector.triangles;
     *)
     
-    glDisableClientState GL_VERTEX_ARRAY;
-    glDisableClientState GL_TEXTURE_COORD_ARRAY; 
    (* glUnbindBuffer GL_ARRAY_BUFFER;*) 
-  
-    glDisable GL_TEXTURE_2D;
-    glEnable GL_BLEND;
-    glBlendFunc Sfactor.GL_SRC_ALPHA Dfactor.GL_ONE_MINUS_SRC_ALPHA;  
-    glColor4 0.2 0.2 0.5 0.5;
+
+   (* glDisable GL_TEXTURE_2D;*)
+   (* glEnable GL_BLEND;*)
+    let time = Sys.time () in let (ripple_texture , new_raindrop) = Ripple.render_to_texture time (!lasttime) (!raindrop) ripple_tex_2d ripple_program fboId.(0) in
+    raindrop := new_raindrop;
+    lasttime := time;
+
+    glBindTexture BindTex.GL_TEXTURE_2D ripple_texture;
+    (*glBlendFunc Sfactor.GL_SRC_ALPHA Dfactor.GL_ONE_MINUS_SRC_ALPHA;  
+    glColor4 0.2 0.2 0.5 0.5;*)
 
     glEnableClientState GL_VERTEX_ARRAY;
+    glEnableClientState GL_TEXTURE_COORD_ARRAY;
     glTranslate 0.0 1.0 0.0;
     
     glBindBuffer GL_ARRAY_BUFFER ripple_vertex_id;
     glVertexPointer0 3 Coord.GL_FLOAT 0;
+    glBindBuffer GL_ARRAY_BUFFER ripple_texture_id;
+    glTexCoordPointer0 2 Coord.GL_FLOAT 0;
 
     glBindBuffer GL_ELEMENT_ARRAY_BUFFER ripple_indices_id;
     glDrawElements0 GL_TRIANGLES (63*63*6) (Elem.GL_UNSIGNED_SHORT);  
     glDisableClientState GL_VERTEX_ARRAY;
+    glDisableClientState GL_TEXTURE_COORD_ARRAY;
+    
     glUnbindBuffer GL_ARRAY_BUFFER; 
-    glDisable GL_BLEND;
-    glEnable GL_TEXTURE_2D;
-    glColor4 1.0 1.0 1.0 0.0; 
+    glUnbindBuffer GL_ELEMENT_ARRAY_BUFFER;
+  (*  glDisable GL_BLEND;*)
 (* 
     glDisable GL_TEXTURE_2D;
     glEnable GL_BLEND;
@@ -273,12 +290,12 @@ let drawscene (texture , sector , vertex_id , texture_id , ripple_vertex_id , ri
     
 ;;   
 
-let display (texture , sector, vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id) = fun () ->
+let display (texture , sector, vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id , ripple_tex_2d , ripple_program , fboId) = fun () ->
 (* Display function *)
     glClear [GL_COLOR_BUFFER_BIT ; GL_DEPTH_BUFFER_BIT];
     glLoadIdentity ();  
     
-    drawscene (texture , sector , vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id);
+    drawscene (texture , sector , vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id , ripple_tex_2d , ripple_program , fboId);
 
     glutSwapBuffers ();
 ;;
@@ -294,9 +311,9 @@ let () =
   
     let window = glutCreateWindow ~title:"ocaml-opengl demo" in
    
-    let (texture , sector , vertex_id , texture_id, ripple_vertex_id , ripple_texture_id , ripple_indices_id) = initGL () in
+    let (texture , sector , vertex_id , texture_id, ripple_vertex_id , ripple_texture_id , ripple_indices_id , ripple_tex_2d , ripple_program , fboId) = initGL () in
     
-    glutDisplayFunc (display (texture , sector , vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id));
+    glutDisplayFunc (display (texture , sector , vertex_id , texture_id , ripple_vertex_id , ripple_texture_id , ripple_indices_id , ripple_tex_2d , ripple_program, fboId));
    
     glutIdleFunc ~idle:glutPostRedisplay;
   
