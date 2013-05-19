@@ -1,6 +1,7 @@
 open GL
 open Glu
 open VBO
+open FBO
 
 module Parameter = struct
 type t = 
@@ -122,7 +123,8 @@ let loadshader () =
 let init () = 
     let texture_2d , texture_1d = inittexture () in
     let program = loadshader () in
-    (texture_2d , texture_1d , program)
+    let fboId = glGenFrameBuffers 1 in
+    (texture_2d , texture_1d , program , fboId)
 ;;
 
 (* parse each ripple source *)
@@ -190,14 +192,16 @@ let prepareWavesourceTexture time lasttime raindrop =
     
 (***********************************************************************************************************)
 (*                                                                                                         *)
-let render_to_texture time lasttime raindrop tex_2d program = 
+let render_to_texture time lasttime raindrop tex_2d program fboId = 
     let (source , count , new_raindrop) = prepareWavesourceTexture time lasttime raindrop in
+    glBindFrameBuffer GL_FRAMEBUFFER_EXT fboId;
+    glFrameBufferTexture2D GL_FRAMEBUFFER_EXT GL_COLOR_ATTACHMENT0_EXT GL_TEXTURE_2D tex_2d 0; 
 
     glUseProgram program;
     let loc = glGetUniformLocation program "source" in
     glUniform1fv loc source;
     let loc = glGetUniformLocation program "n" in
-    glUniform1i loc (count/8);
+    glUniform1i loc (count);
     let loc = glGetUniformLocation program "InvN" in
     glUniform1f loc (1.0 /. float (count*2-1));
     let loc = glGetUniformLocation program "poolSize" in
@@ -209,20 +213,17 @@ let render_to_texture time lasttime raindrop tex_2d program =
     let loc = glGetUniformLocation program "Lambda2" in
     glUniform1f loc para.Parameter.lambda2;
 
-    glDisable GL_TEXTURE_2D;
     let (view0 , view1 , view2 , view3) = glGetInteger4 Get.GL_VIEWPORT in 
     glViewport 0 0 para.Parameter.wavefieldsize para.Parameter.wavefieldsize;
-    glClearColor 1.0 0.0 0.0 0.0;
-(*    glClear [GL_COLOR_BUFFER_BIT ; GL_DEPTH_BUFFER_BIT];
-  *)  glPushAttrib [Attrib.GL_COLOR_BUFFER_BIT ; Attrib.GL_PIXEL_MODE_BIT];
-    glDrawBuffer DrawBuffer.GL_BACK;
-    glReadBuffer ReadBuffer.GL_BACK; 
+    glClear [GL_COLOR_BUFFER_BIT ; GL_DEPTH_BUFFER_BIT];
+    glClearColor 0.0 1.0 0.0 0.0;
     glMatrixMode GL_PROJECTION;
     glPushMatrix();
     glLoadIdentity();
     glOrtho 0.0 (float para.Parameter.wavefieldsize) (float para.Parameter.wavefieldsize) 0.0 (-1.0) 1.0;
     glMatrixMode GL_MODELVIEW ;
     glPushMatrix ();
+    glLoadIdentity ();
     glLoadIdentity ();
 	
     glBegin GL_QUADS;
@@ -238,12 +239,9 @@ let render_to_texture time lasttime raindrop tex_2d program =
     glMatrixMode GL_MODELVIEW;
     glPopMatrix ();
     glViewport view0 view1 view2 view3;
-
-    glEnable GL_TEXTURE_2D;
-    glBindTexture BindTex.GL_TEXTURE_2D tex_2d;
-    glCopyTexImage2D CopyTex.GL_TEXTURE_2D 0 InternalFormat.GL_RGBA 0 0 para.Parameter.wavefieldsize para.Parameter.wavefieldsize 0;
-    glUnbindTexture2D ();
-    glPopAttrib ();
+   
+    glUnuseProgram ();
+    glUnBindFrameBuffer GL_FRAMEBUFFER_EXT;
     (tex_2d , new_raindrop);
 ;;    
 
