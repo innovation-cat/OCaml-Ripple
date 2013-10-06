@@ -1,2 +1,16 @@
+OCaml-Ripple
+--------------------------------------------------------------------------------------------
 Ripple simulation with OCaml and glMLite
+
+Prerequisite:
+	1. make sure you have installed OCaml (4.0) and glMLite, glMLite is a package which provide OpenGL bindings for OCaml, 
+	   for more detail about glMLite, please refer to:
+	   http://www.linux-nantes.org/~fmonnier/ocaml/GL/index.html
+	
+	2. make sure your graphic card support OpenGL 4.0. 
+
+Abstract:
+	when rain drop touch wather, it would becomes a wave source, waves superposition for multiple ripples is time-consuming, here, I use GPU parallel technique to implement.
+	  
+
 

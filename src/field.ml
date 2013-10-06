@@ -71,21 +71,21 @@ let create () =
     	let vertices_array = Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout vertices in
     	let vertex_id = VBO.glGenBuffer () in 
     	VBO.glBindBuffer VBO.GL_ARRAY_BUFFER vertex_id;
-	Printf.printf "vertices array: %d %d\n" (VBO.ba_sizeof vertices_array) (List.length (Array.to_list vertices));
+	(*Printf.printf "vertices array: %d %d\n" (VBO.ba_sizeof vertices_array) (List.length (Array.to_list vertices));*)
     	VBO.glBufferData VBO.GL_ARRAY_BUFFER (VBO.ba_sizeof vertices_array) vertices_array VBO.GL_STATIC_DRAW;
 
 	let texcoords = Array.of_list (List.rev (createTextureCoord 0 0 [])) in
     	let texcoords_array = Bigarray.Array1.of_array Bigarray.float32 Bigarray.c_layout texcoords in
     	let texture_id = VBO.glGenBuffer () in 
     	VBO.glBindBuffer VBO.GL_ARRAY_BUFFER texture_id;
-	Printf.printf "texcoords array: %d\n" (VBO.ba_sizeof texcoords_array);
+	(*Printf.printf "texcoords array: %d\n" (VBO.ba_sizeof texcoords_array);*)
     	VBO.glBufferData VBO.GL_ARRAY_BUFFER (VBO.ba_sizeof texcoords_array) texcoords_array VBO.GL_STATIC_DRAW;
 
     	let indices = Array.of_list (List.rev (createIndices 0 0 [])) in
     	let indices_array = Bigarray.Array1.of_array Bigarray.int Bigarray.c_layout indices in
     	let indices_id = VBO.glGenBuffer () in
     	VBO.glBindBuffer VBO.GL_ARRAY_BUFFER indices_id;
-	Printf.printf "indices array: %d\n" (VBO.ba_sizeof indices_array);
+	(*Printf.printf "indices array: %d\n" (VBO.ba_sizeof indices_array);*)
     	VBO.glBufferData VBO.GL_ARRAY_BUFFER (VBO.ba_sizeof indices_array) indices_array VBO.GL_STATIC_DRAW;
     	{vertex_id; texture_id; indices_id}
 ;;  

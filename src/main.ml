@@ -100,7 +100,6 @@ let loadTexture () =
 
 let createVBO (sector : Model.section) = 
    	let triangles_list = Array.to_list sector.Model.triangles in
-	Printf.printf "%d\n" (List.length triangles_list);
 	let id = glGenBuffer () in
 	model_vertex_id := Some id;
    	glBindBuffer GL_ARRAY_BUFFER id;
@@ -328,7 +327,7 @@ let display () =
     	
 	glClearColor 0.0 0.4 0.7 1.0;
 
-(*    	glRotate (360.0 -. !up_down) 1.0 0.0 0.0;
+    	glRotate (360.0 -. !up_down) 1.0 0.0 0.0;
     	glRotate !yrot 0.0 1.0 0.0;
     	glTranslate !xpos !ypos !zpos;         (* Move Left 1.5 Units And Into The Screen 6.0 *)
 	
@@ -353,7 +352,7 @@ let display () =
 	glDisableClientState GL_VERTEX_ARRAY;
 	glDisableClientState GL_TEXTURE_COORD_ARRAY;
 	glUnbindBuffer GL_ARRAY_BUFFER;
-*)
+
 	let fbo_id = destruct (!fbo) in
 	raindrop := Ripple.render_to_texture (!this_time) (!last_time) (!raindrop) fbo_id;
 
@@ -380,7 +379,6 @@ let idlefunc () =
 	this_time := (float !this_frame) /. 10000.0;
 	last_time := (float !prev_frame) /. 10000.0;
 	time_duration := (float !frame_duration) /. 10000.0;
-	Printf.printf "this_frame: %f prev_frame: %f frame_duration: %f\n" (!this_time) (!last_time) (!time_duration);
 	
 	glutPostRedisplay ();
 ;;
