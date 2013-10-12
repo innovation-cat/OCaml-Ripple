@@ -1,0 +1,67 @@
+# OASIS_START
+# DO NOT EDIT (digest: e9399bc61a6ec59bec41ba375f399b0a)
+# Ignore VCS directories, you can use the same kind of rule outside 
+# OASIS_START/STOP if you want to exclude directories that contains 
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
+# Library glex
+"src/glex.cmxs": use_glex
+"src/glex.cma": use_libglex_stubs
+"src/glex_stubs.c": pkg_GL
+# Library FBO
+"src/FBO.cmxs": use_FBO
+"src/FBO.cma": use_libFBO_stubs
+"src/FBO_stubs.c": pkg_GL
+# Library glsl_shader
+"src/glsl_shader.cmxs": use_glsl_shader
+# Library texture
+"src/texture.cmxs": use_texture
+# Library model
+"src/model.cmxs": use_model
+# Library basic
+"src/basic.cmxs": use_basic
+# Library field
+"src/field.cmxs": use_field
+# Library ripple
+"src/ripple.cmxs": use_ripple
+# Executable superposition
+"src/main.byte": use_ripple
+"src/main.byte": use_texture
+"src/main.byte": use_glsl_shader
+"src/main.byte": use_glex
+"src/main.byte": use_FBO
+"src/main.byte": use_model
+"src/main.byte": use_field
+"src/main.byte": use_basic
+"src/main.byte": pkg_bigarray
+"src/main.byte": pkg_GL
+"src/main.byte": pkg_Glu
+"src/main.byte": pkg_Glut
+"src/main.byte": pkg_vertArray
+"src/main.byte": pkg_VBO
+"src/main.byte": pkg_png_loader
+<src/*.ml{,i}>: use_ripple
+<src/*.ml{,i}>: use_texture
+<src/*.ml{,i}>: use_glsl_shader
+<src/*.ml{,i}>: use_glex
+<src/*.ml{,i}>: use_FBO
+<src/*.ml{,i}>: use_model
+<src/*.ml{,i}>: use_field
+<src/*.ml{,i}>: use_basic
+<src/*.ml{,i}>: pkg_bigarray
+<src/*.ml{,i}>: pkg_GL
+<src/*.ml{,i}>: pkg_Glu
+<src/*.ml{,i}>: pkg_Glut
+<src/*.ml{,i}>: pkg_vertArray
+<src/*.ml{,i}>: pkg_VBO
+<src/*.ml{,i}>: pkg_png_loader
+# OASIS_STOP

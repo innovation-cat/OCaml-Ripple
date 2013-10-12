@@ -1,0 +1,5 @@
+(* OASIS_START *)
+(* DO NOT EDIT (digest: c0bdeb1e67c505e5bb5d79ba4cbbb852) *)
+Authors of OCaml-Ripple
+Anbu Huang
+(* OASIS_STOP *)

@@ -1,0 +1,88 @@
+OASISFormat: 0.3
+Name:        OCaml-Ripple
+Version:     1.0
+Synopsis:    Implement wave superposition with OCaml and GPU programming skill
+Authors:     Anbu Huang
+License:     LGPL
+BuildTools:  ocamlbuild
+Plugins:     StdFiles (0.3), DevFiles (0.3) META (0.3)
+Homepage:    https://github.com/wong4ever/OCaml-Ripple
+
+Library glex
+  Path:           src/
+  Modules:        Glex
+  CompiledObject: byte
+  CSources:       glex_stubs.c
+  BuildDepends:   GL
+  install:        true
+
+Library FBO
+  Path:           src/
+  Modules:        FBO
+  CompiledObject: byte
+  CSources:       FBO_stubs.c
+  BuildDepends:   GL
+  install:        true
+
+Library glsl_shader
+  Path:           src/
+  Modules:        Glsl_shader
+  CompiledObject: byte
+  BuildDepends:   GL, glex
+  install:        true
+
+Library texture
+  Path:           src/
+  Modules:        Texture
+  CompiledObject: byte
+  BuildDepends:   bigarray, GL, glex
+  install:        true
+
+Library model
+  Path:           src/
+  Modules:        Model
+  CompiledObject: byte
+  install:        true
+
+Library basic
+  Path:           src/
+  Modules:        Basic
+  CompiledObject: byte
+  install:        true
+
+Library field
+  Path:           src/
+  Modules:        Field
+  CompiledObject: byte
+  BuildDepends:   VBO, basic
+  install:        true
+
+Library ripple
+  Path:           src/
+  Modules:        Ripple
+  CompiledObject: byte
+  BuildDepends:   GL, Glu, VBO, glex, FBO, basic, texture, glsl_shader
+  install:        true
+
+Executable superposition
+  Path:           src/
+  MainIs:         main.ml
+  CompiledObject: byte
+  BuildDepends:   bigarray, 
+                  GL,
+                  Glu, 
+                  Glut,
+                  vertArray, 
+                  VBO,  
+                  png_loader,
+                  FBO,
+                  glex,
+                  basic,
+                  texture,
+                  glsl_shader,
+                  model, 
+                  field,
+                  ripple
+  install:        false
+
+
